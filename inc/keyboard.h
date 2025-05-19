@@ -1,6 +1,7 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
+
 #include "sapi.h"
 
 
@@ -11,8 +12,8 @@ typedef enum{
 } StateKey;
 
 
+extern StateKey stateKey;
 extern const uint8_t pinsRows[4];
-
 extern const uint8_t pinsCols[4];
 
 

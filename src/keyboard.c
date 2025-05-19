@@ -9,22 +9,21 @@
 
 
 StateKey stateKey;
-uint8_t scanRow;
-uint8_t scanCol;
-uint8_t keyRow;
-uint8_t keyCol;
-uint8_t keyCode;      // Código de la tecla presionada
+static uint8_t scanRow;
+static uint8_t scanCol;
+static uint8_t keyRow;
+static uint8_t keyCol;
+static uint8_t keyCode;      // Código de la tecla presionada
 bool_t keyOk;             // Flag para indicar si la tecla ya fue leída
 static delay_t vDelayDeb;     // Retardo de anti-rebote
 static delay_t vDelayScan;    // Retardo de escaneo
 
 
 const uint8_t pinsRows[4] = {RS232_TXD, CAN_RD, CAN_TD, T_COL1};
-
 const uint8_t pinsCols[4] = {T_FIL0, T_FIL3, T_FIL2, T_COL0};
 
 
-void init_Keyboard(){
+void init_Keyboard(void){
 
 	uint8_t i = 0;
 	for(i = 0; i < 4; i++){
@@ -68,7 +67,6 @@ void update_FSM_Keyboard(){
 			scanCol = readKeyboard(scanRow);
 
 			if(scanCol == keyCol){
-				keyOk = 1;
 				stateKey = PRESS_KEYBOARD;
 			}
 			else{
@@ -80,6 +78,7 @@ void update_FSM_Keyboard(){
 	case PRESS_KEYBOARD:
 		scanCol = readKeyboard(scanRow);
 		if(scanCol == 4){
+			keyOk = 1;
 			keyCode = scanRow * COLS + keyCol;
 			insert_KeyQueue(&keyQueue, keyCode);
 			stateKey = WAIT_KEYBOARD;
