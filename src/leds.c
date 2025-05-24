@@ -5,95 +5,45 @@
 #define	cTicksLed	150
 
 
-static LedState currentStateR;
-static LedState currentStateG;
-static LedState currentStateB;
-static LedState currentState1;
-static LedState currentState2;
-static LedState currentState3;
-static LedFlashingState currentStateFlashingR;
+static LedState currentStateGPIO0;
+static LedState currentStateGPIO2;
+static LedState currentStateGPIO4;
+static LedState currentStateLED1;
+static LedState currentStateLED2;
+static LedState currentStateLED3;
+static LedFlashingState currentStateFlashing;
 static delay_t vTickLed;
-static Event event;
+Event event;
 static bool_t flag1, flag2, flag3, flag4;
 
 
+/*
+	LED1: ascensor en movimiento.
+	LED2: ascensor detenido o en planta baja.
+	LED3: puerta abierta.
+	LED VERDE (GPIO0):  problema con puerta.
+	LED AZUL (GPIO2): puerta abriéndose.
+	LED AMARILLO (GPIO4): puerta cerrándose.
+ */
+
+
 // Funcion privada
-static void aLedR(actionLed_t action){
+static void aLedGPIO0(actionLed_t action){  // 0 2 4
 	switch (action){
 	case cInitLed:
-		gpioInit(LEDR, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
-		gpioWrite(LEDR, 0);
+		gpioInit(GPIO0, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
+		gpioWrite(GPIO0, 0);
 		break;
 	case cOnLed:
-		gpioWrite(LEDR, 1);
+		gpioWrite(GPIO0, 1);
 		break;
 	case cOffLed:
-		gpioWrite(LEDR, 0);
+		gpioWrite(GPIO0, 0);
 		break;
 	}
 }
 
-static void aLedG(actionLed_t action){
-	switch (action){
-	case cInitLed:
-		gpioInit(LEDG, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
-		gpioWrite(LEDG, 0);
-		break;
-	case cOnLed:
-		gpioWrite(LEDG, 1);
-		break;
-	case cOffLed:
-		gpioWrite(LEDG, 0);
-		break;
-	}
-}
-
-static void aLedB(actionLed_t action){
-	switch (action){
-	case cInitLed:
-		gpioInit(LEDB, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
-		gpioWrite(LEDB, 0);
-		break;
-	case cOnLed:
-		gpioWrite(LEDB, 1);
-		break;
-	case cOffLed:
-		gpioWrite(LEDB, 0);
-		break;
-	}
-}
-
-static void aLed1(actionLed_t action){
-	switch (action){
-	case cInitLed:
-		gpioInit(LED1, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
-		gpioWrite(LED1, 0);
-		break;
-	case cOnLed:
-		gpioWrite(LED1, 1);
-		break;
-	case cOffLed:
-		gpioWrite(LED1, 0);
-		break;
-	}
-}
-
-static void aLed2(actionLed_t action){
-	switch (action){
-	case cInitLed:
-		gpioInit(LED2, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
-		gpioWrite(LED2, 0);
-		break;
-	case cOnLed:
-		gpioWrite(LED2, 1);
-		break;
-	case cOffLed:
-		gpioWrite(LED2, 0);
-		break;
-	}
-}
-
-static void aLed3(actionLed_t action){
+static void aLedLED3(actionLed_t action){
 	switch (action){
 	case cInitLed:
 		gpioInit(LED3, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
@@ -108,12 +58,72 @@ static void aLed3(actionLed_t action){
 	}
 }
 
+static void aLedLED1(actionLed_t action){
+	switch (action){
+	case cInitLed:
+		gpioInit(LED1, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
+		gpioWrite(LED1, 0);
+		break;
+	case cOnLed:
+		gpioWrite(LED1, 1);
+		break;
+	case cOffLed:
+		gpioWrite(LED1, 0);
+		break;
+	}
+}
+
+static void aLedGPIO2(actionLed_t action){
+	switch (action){
+	case cInitLed:
+		gpioInit(GPIO2, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
+		gpioWrite(GPIO2, 0);
+		break;
+	case cOnLed:
+		gpioWrite(GPIO2, 1);
+		break;
+	case cOffLed:
+		gpioWrite(GPIO2, 0);
+		break;
+	}
+}
+
+static void aLedGPIO4(actionLed_t action){
+	switch (action){
+	case cInitLed:
+		gpioInit(GPIO4, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
+		gpioWrite(GPIO4, 0);
+		break;
+	case cOnLed:
+		gpioWrite(GPIO4, 1);
+		break;
+	case cOffLed:
+		gpioWrite(GPIO4, 0);
+		break;
+	}
+}
+
+static void aLedLED2(actionLed_t action){
+	switch (action){
+	case cInitLed:
+		gpioInit(LED2, GPIO_OUTPUT); // @suppress("Symbol is not resolved")
+		gpioWrite(LED2, 0);
+		break;
+	case cOnLed:
+		gpioWrite(LED2, 1);
+		break;
+	case cOffLed:
+		gpioWrite(LED2, 0);
+		break;
+	}
+}
+
 
 // Funciones Globales
 void init_FSM_Flashing(void){
-	aLedR(cOffLed);
+	aLedGPIO0(cOffLed);
 	delayInit(&vTickLed,cTicksLed);
-	currentStateFlashingR = FLASHING_SLEEP;
+	currentStateFlashing = FLASHING_SLEEP;
 }
 
 
@@ -122,30 +132,30 @@ void init_Led(void){
 	flag2 = 0;
 	flag3 = 0;
 	flag4 = 0;
-	aLedR(cInitLed);
-	aLedG(cInitLed);
-	aLedB(cInitLed);
-	aLed1(cInitLed);
-	aLed2(cInitLed);
-	aLed3(cInitLed);
-	currentStateR = SLEEP;
-	currentStateG = SLEEP;
-	currentStateB = SLEEP;
-	currentState1 = SLEEP;
-	currentState2 = SLEEP;
-	currentState3 = SLEEP;
+	aLedGPIO0(cInitLed);
+	aLedGPIO2(cInitLed);
+	aLedGPIO4(cInitLed);
+	aLedLED1(cInitLed);
+	aLedLED2(cInitLed);
+	aLedLED3(cInitLed);
+	currentStateGPIO0 = SLEEP;
+	currentStateGPIO2 = SLEEP;
+	currentStateGPIO4 = SLEEP;
+	currentStateLED1 = SLEEP;
+	currentStateLED2 = SLEEP;
+	currentStateLED3 = SLEEP;
 	init_FSM_Flashing();
 }
 
 
 void update_FSM_Led(void){
-	switch (currentStateR){
+	switch (currentStateGPIO0){
 	case SLEEP:
 		if(consult_LedEventQueue(&ledEventQueue, &event)){
 			if(event == eAlarm){
 				supress_LedEventQueue(&ledEventQueue);
-				currentStateR = FLASHING;
-				aLedR(cOnLed);
+				currentStateGPIO0 = FLASHING;
+				aLedGPIO0(cOnLed);
 			}
 		}
 		break;
@@ -154,24 +164,24 @@ void update_FSM_Led(void){
 		if(consult_LedEventQueue(&ledEventQueue, &event)){
 			if(event == eEndAlarm){
 				supress_LedEventQueue(&ledEventQueue);
-				currentStateR = SLEEP;
-				currentStateFlashingR = FLASHING_SLEEP;
-				aLedR(cOffLed);
+				currentStateGPIO0 = SLEEP;
+				currentStateFlashing = FLASHING_SLEEP;
+				aLedGPIO0(cOffLed);
 			}
 		}
 
-		switch (currentStateFlashingR){
+		switch (currentStateFlashing){
 		case FLASHING_SLEEP:
 			if (delayRead(&vTickLed)){
-				currentStateFlashingR = FLASHING_AWAKE;
-				aLedR(cOnLed);
+				currentStateFlashing = FLASHING_AWAKE;
+				aLedGPIO0(cOnLed);
 				delayRead(&vTickLed);
 			}
 			break;
 		case FLASHING_AWAKE:
 			if (delayRead(&vTickLed)){
-				currentStateFlashingR = FLASHING_SLEEP;
-				aLedR(cOffLed);
+				currentStateFlashing = FLASHING_SLEEP;
+				aLedGPIO0(cOffLed);
 				delayRead(&vTickLed);
 			}
 			break;
@@ -179,14 +189,14 @@ void update_FSM_Led(void){
 		break;
 	}
 
-	switch (currentStateG){
+	switch (currentStateLED3){
 	case SLEEP:
 		if(consult_LedEventQueue(&ledEventQueue, &event)){
 			if(event == eOpenDoor){
 				supress_LedEventQueue(&ledEventQueue);
 				flag1 = 1;
-				currentStateG = AWAKE;
-				aLedG(cOnLed);
+				currentStateLED3 = AWAKE;
+				aLedLED3(cOnLed);
 			}
 		}
 		break;
@@ -196,21 +206,21 @@ void update_FSM_Led(void){
 			if(event == eClosedDoor){
 				supress_LedEventQueue(&ledEventQueue);
 				flag2 = 1;
-				currentStateG = SLEEP;
-				aLedG(cOffLed);
+				currentStateLED3 = SLEEP;
+				aLedLED3(cOffLed);
 			}
 		}
 		break;
 	}
 
-	switch (currentStateB){
+	switch (currentStateLED1){
 	case SLEEP:
 		if(consult_LedEventQueue(&ledEventQueue, &event)){
 			if(event == eGoingUp || event == eGoingDown){
 				supress_LedEventQueue(&ledEventQueue);
 				flag3 = 1;
-				currentStateB = AWAKE;
-				aLedB(cOnLed);
+				currentStateLED1 = AWAKE;
+				aLedLED1(cOnLed);
 			}
 		}
 		break;
@@ -220,20 +230,20 @@ void update_FSM_Led(void){
 			if(event == eStop){
 				supress_LedEventQueue(&ledEventQueue);
 				flag4 = 1;
-				currentStateB = SLEEP;
-				aLedB(cOffLed);
+				currentStateLED1 = SLEEP;
+				aLedLED1(cOffLed);
 			}
 		}
 		break;
 	}
 
-	switch (currentState1){
+	switch (currentStateGPIO2){
 	case SLEEP:
 		if(consult_LedEventQueue(&ledEventQueue, &event)){
 			if(event == eOpeningDoor){
 				supress_LedEventQueue(&ledEventQueue);
-				currentState1 = AWAKE;
-				aLed1(cOnLed);
+				currentStateGPIO2 = AWAKE;
+				aLedGPIO2(cOnLed);
 			}
 		}
 		break;
@@ -242,20 +252,20 @@ void update_FSM_Led(void){
 		if(consult_LedEventQueue(&ledEventQueue, &event)){
 			if(flag1){
 				flag1 = 0;
-				currentState1 = SLEEP;
-				aLed1(cOffLed);
+				currentStateGPIO2 = SLEEP;
+				aLedGPIO2(cOffLed);
 			}
 		}
 		break;
 	}
 
-	switch (currentState2){
+	switch (currentStateGPIO4){
 	case SLEEP:
 		if(consult_LedEventQueue(&ledEventQueue, &event)){
 			if(event == eClosingDoor){
 				supress_LedEventQueue(&ledEventQueue);
-				currentState2 = AWAKE;
-				aLed2(cOnLed);
+				currentStateGPIO4 = AWAKE;
+				aLedGPIO4(cOnLed);
 			}
 		}
 		break;
@@ -263,20 +273,21 @@ void update_FSM_Led(void){
 	case AWAKE:
 		if(consult_LedEventQueue(&ledEventQueue, &event)){
 			if(flag2){
-				currentState2 = SLEEP;
-				aLed2(cOffLed);
+				flag2 = 0;
+				currentStateGPIO4 = SLEEP;
+				aLedGPIO4(cOffLed);
 			}
 		}
 		break;
 	}
 
-	switch (currentState3){
+	switch (currentStateLED2){
 	case SLEEP:
 		if(consult_LedEventQueue(&ledEventQueue, &event)){
 			if(flag4 || sme.currentFloor == 0){
 				flag4 = 0;
-				currentState3 = AWAKE;
-				aLed3(cOnLed);
+				currentStateLED2 = AWAKE;
+				aLedLED2(cOnLed);
 			}
 		}
 		break;
@@ -286,8 +297,8 @@ void update_FSM_Led(void){
 			if(flag3){
 				flag3 = 0;
 				if(sme.currentFloor != 0){
-					currentState3 = SLEEP;
-					aLed3(cOffLed);
+					currentStateLED2 = SLEEP;
+					aLedLED2(cOffLed);
 				}
 				supress_LedEventQueue(&ledEventQueue);
 			}

@@ -56,11 +56,19 @@ typedef struct{
 } LedEventQueue;
 
 
+typedef struct{
+	Event buffer[MAX_QUEUE];
+	uint8_t top;
+	uint8_t last;
+	uint8_t cant;
+} DisplayEventQueue;
+
 
 extern KeyQueue keyQueue;
 extern EventQueue eventQueue;
 extern LedEventQueue ledEventQueue;
 extern OrderQueue orderQueue;
+extern DisplayEventQueue displayEventQueue;
 
 
 void init_KeyQueue(KeyQueue*);
@@ -82,6 +90,12 @@ void init_OrderQueue(OrderQueue*);
 bool_t consult_OrderQueue(OrderQueue*, int8_t*);
 bool_t insert_OrderQueue(OrderQueue*, int8_t);
 void supress_OrderQueue(OrderQueue*);
+
+void init_DisplayEventQueue(DisplayEventQueue*);
+bool_t consult_DisplayEventQueue(DisplayEventQueue*, Event*);
+bool_t insert_DisplayEventQueue(DisplayEventQueue*, Event);
+void supress_DisplayEventQueue(DisplayEventQueue*);
+
 
 
 void translator(OrderQueue*, arrayOfFloors*);

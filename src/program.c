@@ -4,6 +4,7 @@
 #include "elevator.h"
 #include "button.h"
 #include "leds.h"
+#include "display.h"
 #include "sapi.h"
 
 
@@ -15,11 +16,13 @@ void main(void){
 	init_EventQueue(&eventQueue);
 	init_OrderQueue(&orderQueue);
 	init_LedEventQueue(&ledEventQueue);
+	init_DisplayEventQueue(&displayEventQueue);
 	init_Keyboard();
 	init_Button();
 	init_Manager();
 	init_Floors(&aof);
 	init_Elevator(&sme);
+	init_Display();
 	init_Led();
 
 	while(1){
@@ -29,6 +32,7 @@ void main(void){
 		translator(&orderQueue, &aof);
 		update_FSM_Elevator(&sme, &aof);
 		verify_order(&aof, &sme);
+		update_Display();
 		update_FSM_Led();
 	}
 }

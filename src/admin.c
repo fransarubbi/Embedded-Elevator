@@ -1,6 +1,7 @@
 #include "sapi.h"
 #include "admin.h"
 #include "events.h"
+#include "display.h"
 #include "elevator.h"
 
 
@@ -34,9 +35,6 @@ StateManager stateManager;
 uint8_t number, dec;
 int8_t num, n[2];  /* n[0] es el numero MSB, n[1] es el numero LSB */
 extern bool_t keyOk;
-
-
-static char m[10];
 
 
 
@@ -105,6 +103,8 @@ void decoder(uint8_t *dec, uint8_t num){
 void update_FSM_Manager(){
 	switch(stateManager){
 	case WAIT_MANAGER:
+		number_text[0] = ' ';
+		number_text[1] = ' ';
 		if(keyOk){
 			keyOk = 0;
 			if(consult_KeyQueue(&keyQueue, &number)){
@@ -113,12 +113,15 @@ void update_FSM_Manager(){
 					decoder(&dec, number);
 					switch(number){
 					case 11: n[0] = -1;
+							 number_text[1] = '-';
 							 stateManager = NUMBER_1;
 							 break;
 					case 13: n[0] = 0;
+							 number_text[1] = '0';
 							 stateManager = NUMBER_1;
 							 break;
 					default: n[0] = dec;
+							 number_text[1] = '0' + dec;
 							 stateManager = NUMBER_1;
 							 break;
 					}
@@ -147,6 +150,8 @@ void update_FSM_Manager(){
 					case 7: stateManager = WAIT_MANAGER;
 							break;
 					default: n[1] = dec;
+							 number_text[0] = number_text[1];
+							 number_text[1] = '0' + dec;
 							 stateManager = NUMBER_2;
 							 break;
 					}
@@ -164,6 +169,8 @@ void update_FSM_Manager(){
 					stateManager = FINISH;
 				}
 				if(number == 7){
+					number_text[1] = number_text[0];
+					number_text[0] = ' ';
 					stateManager = NUMBER_1;
 				}
 			}
@@ -174,20 +181,15 @@ void update_FSM_Manager(){
 		if(n[0] == -1){
 			num = n[1]*-1;
 			if(num >= (-aof.amountSubs) && sme.current != SETTING){
-				sprintf(m, "\r\nPedido del piso: %d\r\n", num);
-				uartWriteString(UART_USB, m);
 				insert_OrderQueue(&orderQueue, num);
 			}
 		}
 		else{
 			num = n[0]*10 + n[1];
 			if(num == 99) {
-				uartWriteString(UART_USB, "\r\nEvento de setting!\r\n");
 				insert_EventQueue(&eventQueue, eSetting);
 			}
 			else if((num >= 0 && num <= aof.amountFloors) && sme.current != SETTING){
-				sprintf(m, "\r\nPedido del piso: %d\r\n", num);
-				uartWriteString(UART_USB, m);
 				insert_OrderQueue(&orderQueue, num);
 			}
 		}

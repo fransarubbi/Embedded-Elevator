@@ -7,6 +7,7 @@ KeyQueue keyQueue;
 EventQueue eventQueue;
 LedEventQueue ledEventQueue;
 OrderQueue orderQueue;
+DisplayEventQueue displayEventQueue;
 
 
 
@@ -39,6 +40,12 @@ void init_OrderQueue(OrderQueue* orderQueue){
 	for(i = 0; i < MAX_QUEUE; i++){
 		orderQueue->buffer[i] = -1;
 	}
+}
+
+void init_DisplayEventQueue(DisplayEventQueue* displayEventQueue){
+	displayEventQueue->top = 0;
+	displayEventQueue->last = 0;
+	displayEventQueue->cant = 0;
 }
 
 
@@ -74,6 +81,14 @@ bool_t consult_OrderQueue(OrderQueue* orderQueue, int8_t* e){
 		return 0;
 	}
 	*e = orderQueue->buffer[orderQueue->top];
+	return 1;
+}
+
+bool_t consult_DisplayEventQueue(DisplayEventQueue* displayEventQueue, Event* e){
+	if(displayEventQueue->cant == 0){
+		return 0;
+	}
+	*e = displayEventQueue->buffer[displayEventQueue->top];
 	return 1;
 }
 
@@ -122,6 +137,17 @@ bool_t insert_OrderQueue(OrderQueue* orderQueue, int8_t e){
 	return 1;
 }
 
+bool_t insert_DisplayEventQueue(DisplayEventQueue* displayEventQueue, Event e){
+	if(displayEventQueue->cant == MAX_QUEUE){
+		return 0;   // Cola llena
+	}
+	displayEventQueue->buffer[displayEventQueue->last] = e;
+	displayEventQueue->last = (displayEventQueue->last + 1) & (MAX_QUEUE - 1);
+	displayEventQueue->cant++;
+	return 1;
+}
+
+
 
 /*
  * Eliminar evento del tope de la pila
@@ -145,6 +171,12 @@ void supress_OrderQueue(OrderQueue* orderQueue){
 	orderQueue->top = (orderQueue->top + 1) & (MAX_QUEUE - 1);
 	orderQueue->cant--;
 }
+
+void supress_DisplayEventQueue(DisplayEventQueue* displayEventQueue){
+	displayEventQueue->top = (displayEventQueue->top + 1) & (MAX_QUEUE - 1);
+	displayEventQueue->cant--;
+}
+
 
 
 /* Quitar el pedido de la lista y traducirlo en flag para el array */
