@@ -259,142 +259,168 @@ void select_order(StateMachineElevator* sme, arrayOfFloors *aof){
 /* Estado de configuracion */
 
 void state_SETTING(StateMachineElevator* sme, arrayOfFloors* aof) {
-	int value;
-	char buffer[3];
-	char message[512];
-	bool_t endFlag = 0;
-	uint8_t bufferUART = 0xFF;
-	uint8_t uart = 0xFF;
-	uint8_t index = 0;
+	static uint8_t option = 0;
+	static bool_t flag = 0;
+	static int value;
+	static char buffer[3];
+	static char message[512];
+	static uint8_t bufferUART = 0xFF;
+	static uint8_t uart = 0xFF;
+	static uint8_t index = 0;
 
-	while (!endFlag) {
-		uartWriteString(UART_USB, menu);
-		while (uartReadByte(UART_USB, &bufferUART) == 0) { };
-		switch(bufferUART){
-		case '1': uartWriteString(UART_USB, menu1);
-				  while (uartReadByte(UART_USB, &uart) == 0) { };
-				  if(uart >= '1' && uart <= '9'){
-					  speedBetweenFloors = uart - '0';
-					  uart = 0xFF;
-				  }
-				  else{
-					  uartWriteString(UART_USB, "\r\nIngresaste un valor invalido\r\n\n");
-				  }
-				  break;
+	switch(option){
+	case 0: uartWriteString(UART_USB, menu);
+			option = 1;
+			break;
 
-		case '2': uartWriteString(UART_USB, menu2);
-			  	  while (uartReadByte(UART_USB, &uart) == 0) { };
-			  	  if(uart >= '1' && uart <= '9'){
-			  		  speedDoors = uart - '0';
-			  		  uart = 0xFF;
-			  	  }
-			  	  else{
-			  		  uartWriteString(UART_USB, "\r\nIngresaste un valor invalido\r\n\n");
-			  	  }
-			  	  break;
+	case 1: if(uartReadByte(UART_USB, &bufferUART) != 0){
+				if(bufferUART == '1'){
+					uartWriteString(UART_USB, menu1);
+					option = 2;
+				}
+				if(bufferUART == '2'){
+					uartWriteString(UART_USB, menu2);
+					option = 3;
+				}
+				if(bufferUART == '3'){
+					uartWriteString(UART_USB, menu3);
+					option = 4;
+				}
+				if(bufferUART == '4'){
+					uartWriteString(UART_USB, menu4);
+					option = 5;
+				}
+				if(bufferUART == '5'){
+					snprintf(message, sizeof(message),"%s\r"
+							"|  Velocidad de paso entre pisos: %d        |\r\n"
+							"|  Velocidad de apertura de puerta: %d      |\r\n"
+							"|  Cantidad de pisos: %2d                   |\r\n"
+							"|  Cantidad de subsuelos: %d                |\r\n"
+							"|------------------------------------------|\r\n"
+							"|     Saliste del modo configuracion!      |\r\n"
+							"|------------------------------------------|\r\n",
+							menu5, speedBetweenFloors, speedDoors,
+							aof->amountFloors, aof->amountSubs);
+					uartWriteString(UART_USB, message);
+					option = 6;
+				}
+			}
+			break;
 
-		case '3': uartWriteString(UART_USB, menu3);
-				  while(1){
-					  while (uartReadByte(UART_USB, &uart) == 0) { };
-					  uartWriteByte(UART_USB, uart);
-					  if (uart == '\r') {
-						  uartWriteString(UART_USB, "\r\n");
-						  buffer[index] = '\0';  // Terminamos el string
-						  break;
-					  }
+	case 2: if(uartReadByte(UART_USB, &uart) != 0){
+				if(uart >= '1' && uart <= '9'){
+					speedBetweenFloors = uart - '0';
+					uart = 0xFF;
+				}
+				else{
+					uartWriteString(UART_USB, "\r\nIngresaste un valor invalido\r\n\n");
+				}
+				option = 0;
+			}
+			break;
 
-					  if (uart == '\b') {
-						  if (index > 0) {
-							  index--;           // Retroceder un carácter
-							  uartWriteString(UART_USB, "\b \b");   // Borra el carácter en la consola
-						  }
-						  continue;
-					  }
+	case 3: if(uartReadByte(UART_USB, &uart) != 0){
+				if(uart >= '1' && uart <= '9'){
+					speedDoors = uart - '0';
+					uart = 0xFF;
+				}
+				else{
+					uartWriteString(UART_USB, "\r\nIngresaste un valor invalido\r\n\n");
+				}
+				option = 0;
+			}
+			break;
 
-					  if (uart >= '0' && uart <= '9') {
-						  if (index < 2) {
-							  buffer[index++] = uart;
-						  } else {
-							  uartWriteString(UART_USB, "\r\nMaximo 2 digitos permitidos. Se ignoraran los digitos menos significativos restantes.\r\n\n");
-							  break;
-						  }
-					  }
-				  }
-				  index = 0;
-				  value = atoi(buffer);
+	case 4: if(flag){
+				flag = 0;
+				index = 0;
+				value = atoi(buffer);
+				if (value > 0 && value <= 20) {
+					aof->amountFloors = (uint8_t)value;
+					uart = 0xFF;
+					sprintf(message, "\r\nNumero ingresado: %d\r\n", aof->amountFloors);
+					uartWriteString(UART_USB, message);
+				}
+				else{
+					uartWriteString(UART_USB, "\r\nEl numero ingresado esta fuera de rango (1 a 20).\r\n");
+				}
+				option = 0;
+			}
+			else{
+				if(uartReadByte(UART_USB, &uart) != 0){
+					uartWriteByte(UART_USB, uart);
+					if (uart == '\r') {
+						uartWriteString(UART_USB, "\r\n");
+						buffer[index] = '\0';  // Terminamos el string
+						flag = 1;
+					}
+					if (uart == '\b') {
+						if (index > 0) {
+							index--;           // Retroceder un carácter
+							uartWriteString(UART_USB, "\b \b");   // Borra el carácter en la consola
+						}
+					}
+					if (uart >= '0' && uart <= '9') {
+						if (index < 2) {
+							buffer[index++] = uart;
+						} else {
+							uartWriteString(UART_USB, "\r\nMaximo 2 digitos permitidos. Se ignoraran los digitos menos significativos restantes.\r\n\n");
+							flag = 1;
+						}
+					}
+				}
+			}
+			break;
 
-				  if (value > 0 && value <= 20) {
-					  aof->amountFloors = (uint8_t)value;
-					  uart = 0xFF;
-					  sprintf(message, "\r\nNumero ingresado: %d\r\n", aof->amountFloors);
-					  uartWriteString(UART_USB, message);
-				  }
-				  else{
-					  uartWriteString(UART_USB, "\r\nEl numero ingresado esta fuera de rango (1 a 20).\r\n");
-				  }
-				  break;
+	case 5: if(flag){
+				flag = 0;
+				index = 0;
+				value = atoi(buffer);
+				if (value >= 0 && value <= 5) {
+					aof->amountSubs = (uint8_t)value;
+					uart = 0xFF;
+					sprintf(message, "\r\nNumero ingresado: %d\r\n", aof->amountSubs);
+					uartWriteString(UART_USB, message);
+				}
+				else{
+					uartWriteString(UART_USB, "\r\nEl numero ingresado esta fuera de rango (0 a 5).\r\n");
+				}
+				option = 0;
+			}
+			else{
+				if(uartReadByte(UART_USB, &uart) != 0){
+					uartWriteByte(UART_USB, uart);
+					if (uart == '\r') {
+						uartWriteString(UART_USB, "\r\n");
+						buffer[index] = '\0';  // Termina el string
+						flag = 1;
+					}
+					if (uart == '\b') {
+						if (index > 0) {
+							index--;           // Retroceder un carácter
+							uartWriteString(UART_USB, "\b \b");   // Borra el carácter en la consola
+						}
+					}
+					if (uart >= '0' && uart <= '9') {
+						if (index < 2) {
+							buffer[index++] = uart;
+						} else {
+							uartWriteString(UART_USB, "\r\nMaximo 2 digitos permitidos. Se ignoraran los digitos menos significativos restantes.\r\n");
+							break;
+						}
+					}
+				}
+			}
+			break;
 
-		case '4': uartWriteString(UART_USB, menu4);
-				  while(1){
-					  while (uartReadByte(UART_USB, &uart) == 0) { };
-					  uartWriteByte(UART_USB, uart);
-					  if (uart == '\r') {
-						  uartWriteString(UART_USB, "\r\n");
-						  buffer[index] = '\0';  // Termina el string
-						  break;
-					  }
-
-					  if (uart == '\b') {
-						  if (index > 0) {
-							  index--;           // Retroceder un carácter
-							  uartWriteString(UART_USB, "\b \b");   // Borra el carácter en la consola
-						  }
-						  continue;
-					  }
-
-					  if (uart >= '0' && uart <= '9') {
-						  if (index < 2) {
-							  buffer[index++] = uart;
-						  } else {
-							  uartWriteString(UART_USB, "\r\nMaximo 2 digitos permitidos. Se ignoraran los digitos menos significativos restantes.\r\n");
-							  break;
-						  }
-					  }
-				  }
-				  index = 0;
-				  value = atoi(buffer);
-
-				  if (value >= 0 && value <= 5) {
-					  aof->amountSubs = (uint8_t)value;
-					  uart = 0xFF;
-					  sprintf(message, "\r\nNumero ingresado: %d\r\n", aof->amountSubs);
-					  uartWriteString(UART_USB, message);
-				  }
-				  else{
-					  uartWriteString(UART_USB, "\r\nEl numero ingresado esta fuera de rango (0 a 5).\r\n");
-				  }
-				  break;
-
-		case '5': endFlag = 1;
-				  snprintf(message, sizeof(message),"%s\r"
-					         "|  Velocidad de paso entre pisos: %d        |\r\n"
-					         "|  Velocidad de apertura de puerta: %d      |\r\n"
-					         "|  Cantidad de pisos: %2d                   |\r\n"
-					         "|  Cantidad de subsuelos: %d                |\r\n"
-					         "|------------------------------------------|\r\n"
-					         "|     Saliste del modo configuracion!      |\r\n"
-					         "|------------------------------------------|\r\n",
-					         menu5, speedBetweenFloors, speedDoors,
-					         aof->amountFloors, aof->amountSubs);
-				  uartWriteString(UART_USB, message);
-				  break;
-		}
+	case 6: option = 0;
+			setting_timers();
+			insert_LedEventQueue(&ledEventQueue, eOpenDoor);
+			match_floor(aof);
+			onEntry = 1;
+			transition_to(sme, state_OPEN_DOOR, STOPED);
+			break;
 	}
-	setting_timers();
-	insert_LedEventQueue(&ledEventQueue, eOpenDoor);
-	match_floor(aof);
-	onEntry = 1;
-	transition_to(sme, state_OPEN_DOOR, STOPED);
 }
 
 

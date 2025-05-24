@@ -22,7 +22,7 @@
 StateDisplay stateDisplay;
 DisplayDataManager displayDataManager;
 Event displayEvent;
-bool_t flagGoingUp, flagGoingDown, flagStoped;
+bool_t flagSetting, flagGoingUp, flagGoingDown, flagStoped;
 delay_t displayDelay;
 char text_row0[DISPLAY_COLS + 1];
 char text_row1[DISPLAY_COLS + 1];
@@ -106,25 +106,44 @@ void update_Display(){
 	case DISPLAY_UPDATE_ROW0:
 		if(consult_DisplayEventQueue(&displayEventQueue, &displayEvent)){
 			supress_DisplayEventQueue(&displayEventQueue);
+			if(displayEvent == eSetting){
+				flagSetting = 1;
+				flagStoped = 0;
+				flagGoingUp = 0;
+				flagGoingDown = 0;
+			}
 			if(displayEvent == eStop){
+				flagSetting = 0;
 				flagStoped = 1;
 				flagGoingUp = 0;
 				flagGoingDown = 0;
 			}
 			if(displayEvent == eGoingUp){
+				flagSetting = 0;
 				flagGoingUp = 1;
 				flagGoingDown = 0;
 				flagStoped = 0;
 			}
 			if(displayEvent == eGoingDown){
+				flagSetting = 0;
 				flagGoingDown = 1;
 				flagGoingUp = 0;
 				flagStoped = 0;
 			}
 		}
 
+		if(flagSetting){
+			snprintf(text_row0, sizeof(text_row0), "    FUERA DE    ");
+			set_row0(text_row0);
+			if (strcmp(displayDataManager.row0_buffer, displayDataManager.row0_current) != 0) {
+				lcdGoToXY(0, 0);
+				lcdSendStringRaw(displayDataManager.row0_buffer);
+				strcpy(displayDataManager.row0_current, displayDataManager.row0_buffer);
+			}
+		}
+
 		if(flagStoped){
-			snprintf(text_row0, sizeof(text_row0), "Parado en: %d", sme.currentFloor);
+			snprintf(text_row0, sizeof(text_row0), "Piso actual: %d", sme.currentFloor);
 			set_row0(text_row0);
 			if (strcmp(displayDataManager.row0_buffer, displayDataManager.row0_current) != 0) {
 				lcdGoToXY(0, 0);
@@ -159,12 +178,23 @@ void update_Display(){
 
 
 	case DISPLAY_UPDATE_ROW1:
-		lcdGoToXY(0, 1);
-		snprintf(text_row1, sizeof(text_row1), "Destino: %c%c", number_text[0], number_text[1]);
-		set_row1(text_row1);
-		if (strcmp(displayDataManager.row1_buffer, displayDataManager.row1_current) != 0) {
-			lcdSendStringRaw(displayDataManager.row1_buffer);
-			strcpy(displayDataManager.row1_current, displayDataManager.row1_buffer);
+		if(flagSetting){
+			lcdGoToXY(0, 1);
+			snprintf(text_row1, sizeof(text_row1), "    SERVICIO    ");
+			set_row1(text_row1);
+			if (strcmp(displayDataManager.row1_buffer, displayDataManager.row1_current) != 0) {
+				lcdSendStringRaw(displayDataManager.row1_buffer);
+				strcpy(displayDataManager.row1_current, displayDataManager.row1_buffer);
+			}
+		}
+		else{
+			lcdGoToXY(0, 1);
+			snprintf(text_row1, sizeof(text_row1), "Destino: %c%c", number_text[0], number_text[1]);
+			set_row1(text_row1);
+			if (strcmp(displayDataManager.row1_buffer, displayDataManager.row1_current) != 0) {
+				lcdSendStringRaw(displayDataManager.row1_buffer);
+				strcpy(displayDataManager.row1_current, displayDataManager.row1_buffer);
+			}
 		}
 		stateDisplay = DISPLAY_UPDATE_ROW0;
 		break;

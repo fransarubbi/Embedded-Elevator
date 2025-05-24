@@ -187,6 +187,7 @@ void update_FSM_Manager(){
 		else{
 			num = n[0]*10 + n[1];
 			if(num == 99) {
+				insert_DisplayEventQueue(&displayEventQueue, eSetting);
 				insert_EventQueue(&eventQueue, eSetting);
 			}
 			else if((num >= 0 && num <= aof.amountFloors) && sme.current != SETTING){
