@@ -35,7 +35,7 @@ StateManager stateManager;
 uint8_t number, dec;
 int8_t num, n[2];  /* n[0] es el numero MSB, n[1] es el numero LSB */
 extern bool_t keyOk;
-
+extern bool_t settingAccess;
 
 
 void init_Manager(void){
@@ -187,8 +187,10 @@ void update_FSM_Manager(){
 		else{
 			num = n[0]*10 + n[1];
 			if(num == 99) {
-				insert_DisplayEventQueue(&displayEventQueue, eSetting);
-				insert_EventQueue(&eventQueue, eSetting);
+				if(settingAccess){
+					insert_DisplayEventQueue(&displayEventQueue, eSetting);
+					insert_EventQueue(&eventQueue, eSetting);
+				}
 			}
 			else if((num >= 0 && num <= aof.amountFloors) && sme.current != SETTING){
 				insert_OrderQueue(&orderQueue, num);

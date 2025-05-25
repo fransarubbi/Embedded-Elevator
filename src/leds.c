@@ -5,16 +5,10 @@
 #define	cTicksLed	150
 
 
-static LedState currentStateGPIO0;
-static LedState currentStateGPIO2;
-static LedState currentStateGPIO4;
-static LedState currentStateLED1;
-static LedState currentStateLED2;
-static LedState currentStateLED3;
 static LedFlashingState currentStateFlashing;
 static delay_t vTickLed;
 Event event;
-static bool_t flag1, flag2, flag3, flag4;
+static bool_t flag;
 
 
 /*
@@ -120,57 +114,58 @@ static void aLedLED2(actionLed_t action){
 
 
 // Funciones Globales
-void init_FSM_Flashing(void){
-	aLedGPIO0(cOffLed);
-	delayInit(&vTickLed,cTicksLed);
-	currentStateFlashing = FLASHING_SLEEP;
-}
+
 
 
 void init_Led(void){
-	flag1 = 0;
-	flag2 = 0;
-	flag3 = 0;
-	flag4 = 0;
+	flag = 0;
 	aLedGPIO0(cInitLed);
 	aLedGPIO2(cInitLed);
 	aLedGPIO4(cInitLed);
 	aLedLED1(cInitLed);
 	aLedLED2(cInitLed);
 	aLedLED3(cInitLed);
-	currentStateGPIO0 = SLEEP;
-	currentStateGPIO2 = SLEEP;
-	currentStateGPIO4 = SLEEP;
-	currentStateLED1 = SLEEP;
-	currentStateLED2 = SLEEP;
-	currentStateLED3 = SLEEP;
-	init_FSM_Flashing();
+	aLedGPIO0(cOffLed);
+	delayInit(&vTickLed,cTicksLed);
+	currentStateFlashing = FLASHING_SLEEP;
 }
 
 
 void update_FSM_Led(void){
-	switch (currentStateGPIO0){
-	case SLEEP:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(event == eAlarm){
-				supress_LedEventQueue(&ledEventQueue);
-				currentStateGPIO0 = FLASHING;
-				aLedGPIO0(cOnLed);
-			}
+	if(consult_LedEventQueue(&ledEventQueue, &event)){
+		supress_LedEventQueue(&ledEventQueue);
+		if(event == eOpenDoor){
+			aLedLED3(cOnLed);
+			aLedGPIO2(cOffLed);
 		}
-		break;
-
-	case FLASHING:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(event == eEndAlarm){
-				supress_LedEventQueue(&ledEventQueue);
-				currentStateGPIO0 = SLEEP;
-				currentStateFlashing = FLASHING_SLEEP;
-				aLedGPIO0(cOffLed);
-			}
+		if(event == eGoingUp || event == eGoingDown){
+			aLedLED1(cOnLed);
+			aLedLED2(cOffLed);
 		}
+		if(event == eStop){
+			aLedLED1(cOffLed);
+			aLedLED2(cOnLed);
+		}
+		if(event == eOpeningDoor){
+			aLedGPIO2(cOnLed);
+		}
+		if(event == eClosingDoor){
+			aLedGPIO4(cOnLed);
+			aLedLED3(cOffLed);
+		}
+		if(event == eClosedDoor){
+			aLedGPIO4(cOffLed);
+		}
+		if(event == eAlarm){
+			flag = 1;
+		}
+		if(event == eEndAlarm){
+			flag = 0;
+		}
+	}
 
-		switch (currentStateFlashing){
+	if(flag){
+		switch(currentStateFlashing){
 		case FLASHING_SLEEP:
 			if (delayRead(&vTickLed)){
 				currentStateFlashing = FLASHING_AWAKE;
@@ -178,6 +173,7 @@ void update_FSM_Led(void){
 				delayRead(&vTickLed);
 			}
 			break;
+
 		case FLASHING_AWAKE:
 			if (delayRead(&vTickLed)){
 				currentStateFlashing = FLASHING_SLEEP;
@@ -186,123 +182,5 @@ void update_FSM_Led(void){
 			}
 			break;
 		}
-		break;
-	}
-
-	switch (currentStateLED3){
-	case SLEEP:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(event == eOpenDoor){
-				supress_LedEventQueue(&ledEventQueue);
-				flag1 = 1;
-				currentStateLED3 = AWAKE;
-				aLedLED3(cOnLed);
-			}
-		}
-		break;
-
-	case AWAKE:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(event == eClosedDoor){
-				supress_LedEventQueue(&ledEventQueue);
-				flag2 = 1;
-				currentStateLED3 = SLEEP;
-				aLedLED3(cOffLed);
-			}
-		}
-		break;
-	}
-
-	switch (currentStateLED1){
-	case SLEEP:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(event == eGoingUp || event == eGoingDown){
-				supress_LedEventQueue(&ledEventQueue);
-				flag3 = 1;
-				currentStateLED1 = AWAKE;
-				aLedLED1(cOnLed);
-			}
-		}
-		break;
-
-	case AWAKE:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(event == eStop){
-				supress_LedEventQueue(&ledEventQueue);
-				flag4 = 1;
-				currentStateLED1 = SLEEP;
-				aLedLED1(cOffLed);
-			}
-		}
-		break;
-	}
-
-	switch (currentStateGPIO2){
-	case SLEEP:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(event == eOpeningDoor){
-				supress_LedEventQueue(&ledEventQueue);
-				currentStateGPIO2 = AWAKE;
-				aLedGPIO2(cOnLed);
-			}
-		}
-		break;
-
-	case AWAKE:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(flag1){
-				flag1 = 0;
-				currentStateGPIO2 = SLEEP;
-				aLedGPIO2(cOffLed);
-			}
-		}
-		break;
-	}
-
-	switch (currentStateGPIO4){
-	case SLEEP:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(event == eClosingDoor){
-				supress_LedEventQueue(&ledEventQueue);
-				currentStateGPIO4 = AWAKE;
-				aLedGPIO4(cOnLed);
-			}
-		}
-		break;
-
-	case AWAKE:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(flag2){
-				flag2 = 0;
-				currentStateGPIO4 = SLEEP;
-				aLedGPIO4(cOffLed);
-			}
-		}
-		break;
-	}
-
-	switch (currentStateLED2){
-	case SLEEP:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(flag4 || sme.currentFloor == 0){
-				flag4 = 0;
-				currentStateLED2 = AWAKE;
-				aLedLED2(cOnLed);
-			}
-		}
-		break;
-
-	case AWAKE:
-		if(consult_LedEventQueue(&ledEventQueue, &event)){
-			if(flag3){
-				flag3 = 0;
-				if(sme.currentFloor != 0){
-					currentStateLED2 = SLEEP;
-					aLedLED2(cOffLed);
-				}
-				supress_LedEventQueue(&ledEventQueue);
-			}
-		}
-		break;
 	}
 }

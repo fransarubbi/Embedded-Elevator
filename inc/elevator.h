@@ -10,9 +10,7 @@ typedef enum {    //Todos los estados
 	SETTING,
     STOPED,
     GOING_UP,
-    GOING_DOWN,
-	CLOSED_DOOR,
-	OPEN_DOOR
+    GOING_DOWN
 } StateElevatorID;
 
 

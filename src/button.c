@@ -9,7 +9,7 @@ enum Button {WAIT_BUTTON, DEBOUNCE_BUTTON, PRESS_BUTTON};
 enum Button state_someone;
 enum Button state_noOne;
 static delay_t vDelayDeb;
-
+extern bool_t buttonAccess;
 
 /*
  * GPIO1 -> hay alguien
@@ -39,7 +39,7 @@ void update_FSM_Button(void){
 		if (delayRead(&vDelayDeb)){
 			if (gpioRead(GPIO1)){
 				state_someone = PRESS_BUTTON;
-				if(sme.current == STOPED){
+				if(buttonAccess){
 					insert_EventQueue(&eventQueue, eThereIsSomeone);
 				}
 			}else{
@@ -64,7 +64,7 @@ void update_FSM_Button(void){
 		if (delayRead(&vDelayDeb)){
 			if (gpioRead(GPIO3)){
 				state_noOne = PRESS_BUTTON;
-				if(sme.current == STOPED){
+				if(buttonAccess){
 					insert_EventQueue(&eventQueue, eThereIsNoOne);
 				}
 			}else{

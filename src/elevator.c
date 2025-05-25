@@ -19,25 +19,25 @@ char menu1[] = "\r\n\n|------------------------------------------|\r"
 		         "\r\n|  Que velocidad desea entre piso y piso?  |\r"
 			     "\r\n|------------------------------------------|\r"
 			     "\r\n| Ingrese el valor que desee, entre 1 y 9: |\r"
-		         "\r\n|------------------------------------------|\r";
+		         "\r\n|------------------------------------------|\r\n";
 
 char menu2[] = "\r\n\n|------------------------------------------|\r"
 		         "\r\n|  Que velocidad desea para las puertas?   |\r"
 			     "\r\n|------------------------------------------|\r"
 			     "\r\n| Ingrese el valor que desee, entre 1 y 9: |\r"
-		         "\r\n|------------------------------------------|\r";
+		         "\r\n|------------------------------------------|\r\n";
 
 char menu3[] = "\r\n\n|-------------------------------------------|\r"
 		         "\r\n|       Que cantidad de pisos desea?        |\r"
 			     "\r\n|-------------------------------------------|\r"
 			     "\r\n| Ingrese el valor que desee, entre 1 y 20: |\r"
-		         "\r\n|-------------------------------------------|\r";
+		         "\r\n|-------------------------------------------|\r\n";
 
 char menu4[] = "\r\n\n|------------------------------------------|\r"
 		         "\r\n|     Que cantidad de subsuelos desea?     |\r"
 			     "\r\n|------------------------------------------|\r"
 			     "\r\n| Ingrese el valor que desee, entre 0 y 5: |\r"
-		         "\r\n|------------------------------------------|\r";
+		         "\r\n|------------------------------------------|\r\n";
 
 char menu5[] = "\r\n\n|------------------------------------------|\r"
 			     "\r\n|       Resumen de la Configuracion        |\r"
@@ -45,20 +45,18 @@ char menu5[] = "\r\n\n|------------------------------------------|\r"
 
 StateMachineElevator sme;
 arrayOfFloors aof;
-uint8_t speedBetweenFloors;
-uint8_t speedDoors;
-bool_t onEntry, timerInt, blocked, order, go, open, alarm;
+uint8_t speedBetweenFloors, speedDoors;
+bool_t onEntry, timerInt, order, go, open, buttonAccess, settingAccess;
 int8_t destiny;
 Event e;
-char text[DISPLAY_COLS + 1];
 
-static char m[10];
 
 /* Configuracion de los timers */
+
 void setting_timers(void) {
 	Chip_TIMER_Init(LPC_TIMER0);   // Velocidad entre pisos
 	Chip_TIMER_Init(LPC_TIMER1);   // Velocidad de puerta
-	Chip_TIMER_Init(LPC_TIMER2);   // Espera de puerta abierta
+	Chip_TIMER_Init(LPC_TIMER2);
 	Chip_TIMER_PrescaleSet(LPC_TIMER0, 20400 - 1);  //Baja la frecuencia a 10kHz (204Mhz/20400)
 	Chip_TIMER_PrescaleSet(LPC_TIMER1, 20400 - 1);
 	Chip_TIMER_PrescaleSet(LPC_TIMER2, 20400 - 1);
@@ -87,6 +85,7 @@ void setting_timers(void) {
 
 
 /* Handlers de los timers */
+
 void TIMER0_IRQHandler(void) {
     if (Chip_TIMER_MatchPending(LPC_TIMER0, 0)) {
     	timerInt = 1;
@@ -111,7 +110,10 @@ void TIMER2_IRQHandler(void) {
 }
 
 
+
+
 /* Auxiliar de los timers */
+
 void disable_timer(aTimers_t timer){
 	switch(timer){
 	case t0: NVIC_DisableIRQ(TIMER0_IRQn);
@@ -143,6 +145,7 @@ void enable_timer(aTimers_t timer){
 
 
 /* Auxiliar matchear los pisos con la estructura central de pedidos */
+
 void match_floor(arrayOfFloors *aof){
 	int8_t i;
 	for(i = 0; i < (aof->amountFloors + 1 + aof->amountSubs); i++){
@@ -153,6 +156,7 @@ void match_floor(arrayOfFloors *aof){
 
 
 /* Auxiliar para dirigirse hacia arriba */
+
 void direction_up(int8_t orderH, StateMachineElevator *sme){
 	sme->destiny = orderH;
 	onEntry = 1;
@@ -164,6 +168,7 @@ void direction_up(int8_t orderH, StateMachineElevator *sme){
 
 
 /* Auxiliar para dirigirse hacia abajo */
+
 void direction_down(int8_t orderL, StateMachineElevator *sme){
 	sme->destiny = orderL;
 	onEntry = 1;
@@ -175,6 +180,7 @@ void direction_down(int8_t orderL, StateMachineElevator *sme){
 
 
 /* Funcion que verifica si hay pedidos pendientes */
+
 bool_t check_order(arrayOfFloors *aof){
 	int8_t i;
 	for(i = 0; i < (aof->amountFloors + 1 + aof->amountSubs); i++){  /* Recorro el arreglo hasta encontrar un pedido */
@@ -187,6 +193,7 @@ bool_t check_order(arrayOfFloors *aof){
 
 
 /* Funcion que elige que orden consumir */
+
 void select_order(StateMachineElevator* sme, arrayOfFloors *aof){
 	int8_t orderH, orderL, i, idx, idxH, idxL;
 	bool_t candidateH = 0, candidateL = 0;
@@ -257,6 +264,7 @@ void select_order(StateMachineElevator* sme, arrayOfFloors *aof){
 
 
 /* Estado de configuracion */
+
 
 void state_SETTING(StateMachineElevator* sme, arrayOfFloors* aof) {
 	static uint8_t option = 0;
@@ -415,9 +423,8 @@ void state_SETTING(StateMachineElevator* sme, arrayOfFloors* aof) {
 
 	case 6: option = 0;
 			setting_timers();
-			insert_LedEventQueue(&ledEventQueue, eOpenDoor);
 			match_floor(aof);
-			onEntry = 1;
+			insert_DisplayEventQueue(&displayEventQueue, eStop);
 			transition_to(sme, state_OPEN_DOOR, STOPED);
 			break;
 	}
@@ -425,6 +432,7 @@ void state_SETTING(StateMachineElevator* sme, arrayOfFloors* aof) {
 
 
 /* Estado de puerta cerrada */
+
 void state_CLOSED_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 	if(order && go){
 		go = 0;
@@ -440,25 +448,26 @@ void state_CLOSED_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 
 
 /* Estado de puerta abierta */
-void state_OPEN_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
-	if(onEntry){
-		onEntry = 0;
-		insert_DisplayEventQueue(&displayEventQueue, eStop);
-	}
 
+void state_OPEN_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 	if(check_order(aof)){ /* Si hay pedidos, atenderlos */
 		onEntry = 1;
 		order = 1;
+		buttonAccess = 1;
 		transition_to(sme, state_CLOSING_DOOR, STOPED);
 	}
 	else{  /* Si no hay pedidos, ver si se quiere configurar */
 		if(sme->currentFloor == 0){
+			settingAccess = 1;
 			if(consult_EventQueue(&eventQueue, &e)){
-				supress_EventQueue(&eventQueue);
 				if(e == eSetting){
+					supress_EventQueue(&eventQueue);
 					transition_to(sme, state_SETTING, SETTING);
 				}
 			}
+		}
+		else{
+			settingAccess = 0;
 		}
 	}
 }
@@ -467,63 +476,71 @@ void state_OPEN_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 /* Estado de cerrando puerta */
 
 void state_CLOSING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
-	if(onEntry){
-		onEntry = 0;
-		blocked = 0;
-		alarm = 0;
-		enable_timer(t2);
-	}
+	static bool_t alarm = 0;
+	static bool_t blocked = 0;
+	static bool_t closing = 0;
 
-	if(timerInt && blocked == 0){  /* Pasaron 2 seg de puerta abierta */
-		timerInt = 0;
-		disable_timer(t2);    /* Deshabilito el timer de espera de puerta */
+	if(!blocked && !closing){     /* La puerta no esta bloqueada */
 		if(consult_EventQueue(&eventQueue, &e)){
-			supress_EventQueue(&eventQueue);
 			if(e == eThereIsSomeone){  /* Hay alguien, espero 2 seg y si sigue, enciendo alarma*/
+				supress_EventQueue(&eventQueue);
 				enable_timer(t2);
 				Chip_TIMER_Reset(LPC_TIMER2);
-				blocked = 1;
-			}
-			else{  /* Si no hay nadie, cierro la puerta */
-				insert_LedEventQueue(&ledEventQueue, eClosingDoor);
-				go = 1;
-				transition_to(sme, state_CLOSED_DOOR, STOPED);
+				blocked = 1;    /* La puerta esta bloqueada */
 			}
 		}
-		else{
+		else{   /* Si no hay nadie, cierro la puerta */
 			insert_LedEventQueue(&ledEventQueue, eClosingDoor);
-			go = 1;
-			transition_to(sme, state_CLOSED_DOOR, STOPED);
-		}
-	}
-
-	if(timerInt && blocked){  /* Pasaron 2 seg desde que habia alguien. Veo si se libero o enciendo alarma */
-		timerInt = 0;
-		disable_timer(t2);
-		if(consult_EventQueue(&eventQueue, &e)){
-			if(e == eThereIsNoOne){   /* Ya no hay nadie, cierro la puerta */
-				supress_EventQueue(&eventQueue);
-				insert_LedEventQueue(&ledEventQueue, eClosingDoor);
-				go = 1;
-				transition_to(sme, state_CLOSED_DOOR, STOPED);
-				blocked = 0;
-			}
-			if(e == eThereIsSomeone){
-				supress_EventQueue(&eventQueue);
-				insert_LedEventQueue(&ledEventQueue, eAlarm);
-				alarm = 1;
-			}
-		}
-	}
-
-	if(blocked && timerInt == 0 && alarm){
-		if(e == eThereIsNoOne){   /* Alarma encendida hasta que ya no haya nadie */
-			supress_EventQueue(&eventQueue);
-			insert_LedEventQueue(&ledEventQueue, eEndAlarm);
-			insert_LedEventQueue(&ledEventQueue, eClosingDoor);
-			go = 1;
-			transition_to(sme, state_CLOSED_DOOR, STOPED);
+			enable_timer(t2);
+			Chip_TIMER_Reset(LPC_TIMER2);
+			closing = 1;
 			blocked = 0;
+		}
+	}
+	else if(blocked && !alarm){   /* La puerta esta bloqueada */
+		if(timerInt){
+			timerInt = 0;
+			if(consult_EventQueue(&eventQueue, &e)){
+				if(e == eThereIsNoOne){   /* Ya no hay nadie, cierro la puerta */
+					supress_EventQueue(&eventQueue);
+					insert_LedEventQueue(&ledEventQueue, eClosingDoor);
+					Chip_TIMER_Reset(LPC_TIMER2);
+					blocked = 0;
+					closing = 1;
+				}
+				if(e == eThereIsSomeone){
+					supress_EventQueue(&eventQueue);
+					insert_LedEventQueue(&ledEventQueue, eAlarm);
+					disable_timer(t2);
+					alarm = 1;
+				}
+			}
+		}
+	}
+
+	if(alarm){
+		if(consult_EventQueue(&eventQueue, &e)){
+			if(e == eThereIsNoOne){   /* Alarma encendida hasta que ya no haya nadie */
+				supress_EventQueue(&eventQueue);
+				insert_LedEventQueue(&ledEventQueue, eEndAlarm);
+				insert_LedEventQueue(&ledEventQueue, eClosingDoor);
+				enable_timer(t2);
+				Chip_TIMER_Reset(LPC_TIMER2);
+				blocked = 0;
+				alarm = 0;
+				closing = 1;
+			}
+		}
+	}
+
+	if(closing){
+		if(timerInt){
+			timerInt = 0;
+			go = 1;
+			buttonAccess = 0;
+			closing = 0;
+			disable_timer(t2);
+			transition_to(sme, state_CLOSED_DOOR, STOPED);
 		}
 	}
 }
@@ -540,10 +557,9 @@ void state_OPENING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 
 	if(timerInt){
 		timerInt = 0;
-		uartWriteString(UART_USB, "OPEN DOOR\r\n");
 		insert_LedEventQueue(&ledEventQueue, eOpenDoor);
 		disable_timer(t1);
-		transition_to(sme, state_OPEN_DOOR, OPEN_DOOR);
+		transition_to(sme, state_OPEN_DOOR, STOPED);
 	}
 }
 
@@ -551,9 +567,9 @@ void state_OPENING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 /* Estado subiendo */
 
 void state_GOING_UP(StateMachineElevator* sme, arrayOfFloors* aof) {
-	uint8_t idx;
 	if(onEntry){
 		onEntry = 0;
+		insert_LedEventQueue(&ledEventQueue, eGoingUp);
 		enable_timer(t0);
 	}
 
@@ -561,8 +577,8 @@ void state_GOING_UP(StateMachineElevator* sme, arrayOfFloors* aof) {
 		aof->array[sme->currentFloor + aof->amountSubs].flag = 0;
 		disable_timer(t0);
 		insert_LedEventQueue(&ledEventQueue, eStop);
-		open = 1;
 		insert_DisplayEventQueue(&displayEventQueue, eStop);
+		open = 1;
 		transition_to(sme, state_CLOSED_DOOR, STOPED);
 	}
 	else{
@@ -579,6 +595,7 @@ void state_GOING_UP(StateMachineElevator* sme, arrayOfFloors* aof) {
 void state_GOING_DOWN(StateMachineElevator* sme, arrayOfFloors* aof) {
 	if(onEntry){
 		onEntry = 0;
+		insert_LedEventQueue(&ledEventQueue, eGoingDown);
 		enable_timer(t0);
 	}
 
@@ -586,8 +603,8 @@ void state_GOING_DOWN(StateMachineElevator* sme, arrayOfFloors* aof) {
 		aof->array[sme->currentFloor + aof->amountSubs].flag = 0;
 		disable_timer(t0);
 		insert_LedEventQueue(&ledEventQueue, eStop);
-		open = 1;
 		insert_DisplayEventQueue(&displayEventQueue, eStop);
+		open = 1;
 		transition_to(sme, state_CLOSED_DOOR, STOPED);
 	}
 	else{
@@ -623,15 +640,15 @@ void init_Elevator(StateMachineElevator* sme) {
 	speedDoors = 1;
 	onEntry = 0;
 	timerInt = 0;
-	blocked = 0;
 	order = 0;
 	go = 0;
 	open = 0;
-	alarm = 0;
-	sme->current = SETTING;
+	buttonAccess = 0;
 	sme->currentFloor = 0;
 	sme->direction = STOPED;
 	sme->destiny = 0;
+	insert_LedEventQueue(&ledEventQueue, eOpenDoor);
+	insert_LedEventQueue(&ledEventQueue, eStop);
 	insert_DisplayEventQueue(&displayEventQueue, eSetting);
 	transition_to(sme, state_SETTING, SETTING);
 }
