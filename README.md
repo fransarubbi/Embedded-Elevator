@@ -1,2 +1,2 @@
 # Embedded-Elevator
-Embedded system to control an elevator using LEDs, a matrix keypad and a 16x2 LCD display via I2C.
+This project is an embedded system to simulate an elevator using the Look heuristic as an order selector. The UART interface is used to configure certain elevator parameters, and then it is ready to operate. It requires a 16x2 i2C LCD display, a matrix keypad, two buttons, and some LEDs. The statechart file shows the implemented state machines as well as the project structure, that is, how the state machines communicate through certain buffers. This project is built on the LPC4337 microcontroller, using C language and the "sapi" library as the interface, which is owned by engineer Eric Pernia.
