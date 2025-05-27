@@ -24,6 +24,7 @@ DisplayDataManager displayDataManager;
 Event displayEvent;
 bool_t flagSetting, flagGoingUp, flagGoingDown, flagStoped;
 delay_t displayDelay;
+extern bool_t flagDisplay;
 char text_row0[DISPLAY_COLS + 1];
 char text_row1[DISPLAY_COLS + 1];
 char number_text[2];
@@ -132,7 +133,7 @@ void update_Display(){
 			}
 		}
 
-		if(flagSetting){
+		if(flagSetting && flagDisplay){
 			snprintf(text_row0, sizeof(text_row0), "    FUERA DE    ");
 			set_row0(text_row0);
 			if (strcmp(displayDataManager.row0_buffer, displayDataManager.row0_current) != 0) {
@@ -178,7 +179,7 @@ void update_Display(){
 
 
 	case DISPLAY_UPDATE_ROW1:
-		if(flagSetting){
+		if(flagSetting && flagDisplay){
 			lcdGoToXY(0, 1);
 			snprintf(text_row1, sizeof(text_row1), "    SERVICIO    ");
 			set_row1(text_row1);

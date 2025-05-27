@@ -183,4 +183,7 @@ void update_FSM_Led(void){
 			break;
 		}
 	}
+	else{
+		aLedGPIO0(cOffLed);
+	}
 }
