@@ -86,6 +86,7 @@ void setting_timers(void) {
 }
 
 
+
 /* Handlers de los timers */
 
 void TIMER0_IRQHandler(void) {
@@ -110,7 +111,6 @@ void TIMER2_IRQHandler(void) {
         Chip_TIMER_ClearMatch(LPC_TIMER2, 0);
     }
 }
-
 
 
 
@@ -146,6 +146,7 @@ void enable_timer(aTimers_t timer){
 }
 
 
+
 /* Auxiliar matchear los pisos con la estructura central de pedidos */
 
 void match_floor(arrayOfFloors *aof){
@@ -155,6 +156,7 @@ void match_floor(arrayOfFloors *aof){
 		aof->array[i].floor = (-aof->amountSubs) + i;
 	}
 }
+
 
 
 /* Auxiliar para dirigirse hacia arriba */
@@ -179,6 +181,7 @@ void direction_down(int8_t orderL, StateMachineElevator *sme){
 	insert_DisplayEventQueue(&displayEventQueue, eGoingDown);
 	transition_to(sme, state_GOING_DOWN, GOING_DOWN);
 }
+
 
 
 /* Funcion que verifica si hay pedidos pendientes */
@@ -265,8 +268,8 @@ void select_order(StateMachineElevator* sme, arrayOfFloors *aof){
 }
 
 
-/* Estado de configuracion */
 
+/* Estado de configuracion */
 
 void state_SETTING(StateMachineElevator* sme, arrayOfFloors* aof) {
 	static uint8_t option = 0;
@@ -435,25 +438,6 @@ void state_SETTING(StateMachineElevator* sme, arrayOfFloors* aof) {
 }
 
 
-/* Estado de puerta cerrada */
-
-void state_CLOSED_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
-	if(order && go){
-		go = 0;
-		insert_LedEventQueue(&ledEventQueue, eClosedDoor);
-		insert_DisplayEventQueue(&displayEventQueue, eStop);
-		buttonAccess = 0;
-		select_order(sme, aof);
-	}
-	if(order && open){
-		onEntry = 1;
-		open = 0;
-		buttonAccess = 1;
-		transition_to(sme, state_OPENING_DOOR, STOPED);
-	}
-}
-
-
 /* Estado de puerta abierta */
 
 void state_OPEN_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
@@ -578,23 +562,21 @@ void state_CLOSING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 }
 
 
-/* Estado de abriendo puerta */
+/* Estado de puerta cerrada */
 
-void state_OPENING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
-	if(onEntry){
-		onEntry = 0;
-		enable_timer(t1);
-		insert_LedEventQueue(&ledEventQueue, eOpeningDoor);
-		insert_DisplayEventQueue(&displayEventQueue, eOpeningDoor);
-	}
-
-	if(timerInt){
-		timerInt = 0;
-		insert_LedEventQueue(&ledEventQueue, eOpenDoor);
+void state_CLOSED_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
+	if(order && go){
+		go = 0;
+		insert_LedEventQueue(&ledEventQueue, eClosedDoor);
 		insert_DisplayEventQueue(&displayEventQueue, eStop);
-		disable_timer(t1);
-		flagDisplay = 1;
-		transition_to(sme, state_OPEN_DOOR, STOPED);
+		buttonAccess = 0;
+		select_order(sme, aof);
+	}
+	if(order && open){
+		onEntry = 1;
+		open = 0;
+		buttonAccess = 1;
+		transition_to(sme, state_OPENING_DOOR, STOPED);
 	}
 }
 
@@ -651,6 +633,28 @@ void state_GOING_DOWN(StateMachineElevator* sme, arrayOfFloors* aof) {
 }
 
 
+/* Estado de abriendo puerta */
+
+void state_OPENING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
+	if(onEntry){
+		onEntry = 0;
+		enable_timer(t1);
+		insert_LedEventQueue(&ledEventQueue, eOpeningDoor);
+		insert_DisplayEventQueue(&displayEventQueue, eOpeningDoor);
+	}
+
+	if(timerInt){
+		timerInt = 0;
+		insert_LedEventQueue(&ledEventQueue, eOpenDoor);
+		insert_DisplayEventQueue(&displayEventQueue, eStop);
+		disable_timer(t1);
+		flagDisplay = 1;
+		transition_to(sme, state_OPEN_DOOR, STOPED);
+	}
+}
+
+
+
 /* Funcion de transicion */
 
 void transition_to(StateMachineElevator* sme, StateHandler new_state, StateElevatorID id) {
@@ -695,7 +699,6 @@ void init_Elevator(StateMachineElevator* sme) {
 void init_Floors(arrayOfFloors* aof){
 	aof->amountSubs = 5;
 	aof->amountFloors = 20;
-	aof->index = 0;
 	int8_t i;
 	for(i = 0; i < MAX_FLOORS; i++){
 		aof->array[i].flag = 0;

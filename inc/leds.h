@@ -2,13 +2,7 @@
 #define LEDS_H_
 
 
-typedef enum{
-	SLEEP,
-	AWAKE,
-	FLASHING
-} LedState;
-
-
+/* Estado del led titilante */
 typedef enum{
 	FLASHING_SLEEP,
 	FLASHING_AWAKE
@@ -16,6 +10,7 @@ typedef enum{
 
 
 typedef enum{cInitLed = 0, cOnLed, cOffLed} actionLed_t;
+
 
 void init_FSM_Flashing(void);
 void init_Led(void);

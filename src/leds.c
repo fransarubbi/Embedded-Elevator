@@ -5,10 +5,10 @@
 #define	cTicksLed	150
 
 
-static LedFlashingState currentStateFlashing;
+static LedFlashingState flashing;
 static delay_t vTickLed;
-Event event;
 static bool_t flag;
+Event event;
 
 
 /*
@@ -21,7 +21,7 @@ static bool_t flag;
  */
 
 
-// Funcion privada
+/* Funciones de los leds */
 static void aLedGPIO0(actionLed_t action){  // 0 2 4
 	switch (action){
 	case cInitLed:
@@ -113,9 +113,7 @@ static void aLedLED2(actionLed_t action){
 }
 
 
-// Funciones Globales
-
-
+/* Inicializar leds */
 
 void init_Led(void){
 	flag = 0;
@@ -127,12 +125,14 @@ void init_Led(void){
 	aLedLED3(cInitLed);
 	aLedGPIO0(cOffLed);
 	delayInit(&vTickLed,cTicksLed);
-	currentStateFlashing = FLASHING_SLEEP;
+	flashing = FLASHING_SLEEP;
 }
 
 
+/* Funcion para actualizar los leds */
+
 void update_FSM_Led(void){
-	if(consult_LedEventQueue(&ledEventQueue, &event)){
+	if(consult_LedEventQueue(&ledEventQueue, &event)){  // Consultar eventos de los leds
 		supress_LedEventQueue(&ledEventQueue);
 		if(event == eOpenDoor){
 			aLedLED3(cOnLed);
@@ -164,11 +164,11 @@ void update_FSM_Led(void){
 		}
 	}
 
-	if(flag){
-		switch(currentStateFlashing){
+	if(flag){  // Si ocurrio el evento de alarma, activar flag para titilar led
+		switch(flashing){
 		case FLASHING_SLEEP:
 			if (delayRead(&vTickLed)){
-				currentStateFlashing = FLASHING_AWAKE;
+				flashing = FLASHING_AWAKE;
 				aLedGPIO0(cOnLed);
 				delayRead(&vTickLed);
 			}
@@ -176,7 +176,7 @@ void update_FSM_Led(void){
 
 		case FLASHING_AWAKE:
 			if (delayRead(&vTickLed)){
-				currentStateFlashing = FLASHING_SLEEP;
+				flashing = FLASHING_SLEEP;
 				aLedGPIO0(cOffLed);
 				delayRead(&vTickLed);
 			}

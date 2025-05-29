@@ -8,6 +8,7 @@
 #define MAX_ORDERS 16
 
 
+/* Listado de todos los eventos que ocurren en el sistema */
 typedef enum{
 	eThereIsSomeone,
 	eThereIsNoOne,
@@ -23,6 +24,8 @@ typedef enum{
 	eEndAlarm
 } Event;
 
+
+/* Estructuras para cada buffer */
 
 typedef struct{
 	Event buffer[MAX_QUEUE];
@@ -64,12 +67,16 @@ typedef struct{
 } DisplayEventQueue;
 
 
+/* Declaracion de las variables */
+
 extern KeyQueue keyQueue;
 extern EventQueue eventQueue;
 extern LedEventQueue ledEventQueue;
 extern OrderQueue orderQueue;
 extern DisplayEventQueue displayEventQueue;
 
+
+/* Prototipos para manipular las estructuras */
 
 void init_KeyQueue(KeyQueue*);
 bool_t consult_KeyQueue(KeyQueue*, uint8_t*);
@@ -95,8 +102,6 @@ void init_DisplayEventQueue(DisplayEventQueue*);
 bool_t consult_DisplayEventQueue(DisplayEventQueue*, Event*);
 bool_t insert_DisplayEventQueue(DisplayEventQueue*, Event);
 void supress_DisplayEventQueue(DisplayEventQueue*);
-
-
 
 void translator(OrderQueue*, arrayOfFloors*);
 void verify_order(arrayOfFloors*, StateMachineElevator*);

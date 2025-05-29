@@ -192,6 +192,7 @@ void translator(OrderQueue* orderQueue, arrayOfFloors* aof){
 }
 
 
+/* Buscar proximo pedido */
 void verify_order(arrayOfFloors* aof, StateMachineElevator *sme){
 	if(sme->direction == GOING_UP){
 		int8_t proxFloor, proxIdx;

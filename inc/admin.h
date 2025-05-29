@@ -4,6 +4,7 @@
 #include "sapi.h"
 
 
+/* Estados del administrador */
 typedef enum{
 	WAIT_MANAGER,
 	LESS,
@@ -14,9 +15,11 @@ typedef enum{
 } StateManager;
 
 
+/* Declaracion de variable */
 extern StateManager stateManager;
 
 
+/* Declaracion de prototipos */
 void init_Manager(void);
 void update_FSM_Manager(void);
 bool_t validate_Number(bool_t, int8_t);

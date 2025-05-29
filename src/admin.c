@@ -5,31 +5,6 @@
 #include "elevator.h"
 
 
-#define delayDisplay 4
-
-
-/*	Teclado Matricial:
- * 	1	2	3	A
- * 	4	5	6	B
- * 	7	8	9	C
- * 	*	0	#	D
- *
- * 	Valores del teclado:
- * 	0	1	2	3
- * 	4	5	6	7
- * 	8	9	10	11
- * 	12	13	14	15
- *
- * 	Los valores
- * 	3 (A)  confirma el numero
- * 	7 (B)  borra el numero
- * 	12 (*)   -- sin uso --
- * 	14 (F)   -- sin uso --
- * 	No son validos salvo para esos casos mencionados. Por ej: antes de recibir
- * 	como valido la A, debe haber algun numero ingresado previamente
- * 	El 11 (C) representa el signo menos para ingresar el subsuelo
- */
-
 
 StateManager stateManager;
 uint8_t number, dec;
@@ -38,12 +13,16 @@ extern bool_t keyOk;
 extern bool_t settingAccess;
 
 
+// Inicializar el administrador
+
 void init_Manager(void){
 	stateManager = WAIT_MANAGER;
 	n[0] = 0;
 	n[1] = 0;
 }
 
+
+// Validar la tecla ingresada
 
 bool_t validate_number(uint8_t flag, uint8_t num){
 	bool_t validate = 0;
@@ -74,6 +53,8 @@ bool_t validate_number(uint8_t flag, uint8_t num){
 }
 
 
+// Decodificador de la tecla
+
 void decoder(uint8_t *dec, uint8_t num){
 	switch(num){
 	case 0: *dec = 1;
@@ -99,6 +80,8 @@ void decoder(uint8_t *dec, uint8_t num){
 	}
 }
 
+
+// Funcion para actualizar el administrador
 
 void update_FSM_Manager(){
 	switch(stateManager){

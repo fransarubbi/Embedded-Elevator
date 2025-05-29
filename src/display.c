@@ -59,6 +59,7 @@ enum{
 };
 
 
+/* Inicializar el display */
 
 void init_Display(void){
 	i2cInit(I2C0, 100000);
@@ -89,6 +90,8 @@ void init_Display(void){
 }
 
 
+/* Colocar en buffer el texto a imprimir */
+
 void set_row0(char text[]) {
     if (text == NULL) return;
     // Formatear el texto para que ocupe exactamente 16 caracteres
@@ -96,12 +99,19 @@ void set_row0(char text[]) {
 }
 
 
+/* Colocar en buffer el texto a imprimir */
+
 void set_row1(char text[]) {
     if (text == NULL) return;
     // Formatear el texto para que ocupe exactamente 16 caracteres
     snprintf(displayDataManager.row1_buffer, DISPLAY_COLS + 1, "%-16.16s", text);
 }
 
+
+/* Funcion para actualizar la fila
+ * Se compara lo que tiene buffer con lo que esta actualmente mostrandose en el display
+ * si son distintos, se actualiza la informacion
+ * */
 
 void update_row_data(bool_t row){
 	if(row){
@@ -119,11 +129,13 @@ void update_row_data(bool_t row){
 }
 
 
+/* Funcion para actualizar el display */
+
 void update_Display(){
 
-	if(consult_DisplayEventQueue(&displayEventQueue, &displayEvent)){
+	if(consult_DisplayEventQueue(&displayEventQueue, &displayEvent)){  /* Consultar eventos del display */
 		supress_DisplayEventQueue(&displayEventQueue);
-		if(displayEvent == eSetting){
+		if(displayEvent == eSetting){   /* Setear los flags segun corresponda si se produce el evento */
 			flagSetting = 1;
 			flagAlarm = 0;
 			flagClosing = 0;
