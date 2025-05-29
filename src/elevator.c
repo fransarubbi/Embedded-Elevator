@@ -15,15 +15,17 @@ char menu[] = "\r\n|------------------------------------------------------|\r"
 			  "\r\n| 5. Salir del modo configuracion                      |\r"
 		      "\r\n|------------------------------------------------------|\r\n";
 
-char menu1[] = "\r\n\n|------------------------------------------|\r"
-		         "\r\n|  Que velocidad desea entre piso y piso?  |\r"
-			     "\r\n|------------------------------------------|\r"
-			     "\r\n| Ingrese el valor que desee, entre 1 y 9: |\r"
-		         "\r\n|------------------------------------------|\r\n";
+char menu1[] = "\r\n\n|-------------------------------------------|\r"
+		         "\r\n|         Cuanto tiempo debe tardar         |\r"
+				 "\r\n| el ascensor entre piso y piso? (segundos) |\r"
+			     "\r\n|-------------------------------------------|\r"
+			     "\r\n| Ingrese el valor que desee, entre 1 y 9:  |\r"
+		         "\r\n|-------------------------------------------|\r\n";
 
-char menu2[] = "\r\n\n|------------------------------------------|\r"
-		         "\r\n|  Que velocidad desea para las puertas?   |\r"
-			     "\r\n|------------------------------------------|\r"
+char menu2[] = "\r\n\n|-------------------------------------------|\r"
+		         "\r\n|   Cuanto tiempo debe tardar el ascensor   |\r"
+				 "\r\n| en abrir y cerrar las puertas? (segundos) |\r"
+			     "\r\n|-------------------------------------------|\r"
 			     "\r\n| Ingrese el valor que desee, entre 1 y 9: |\r"
 		         "\r\n|------------------------------------------|\r\n";
 
@@ -39,9 +41,9 @@ char menu4[] = "\r\n\n|------------------------------------------|\r"
 			     "\r\n| Ingrese el valor que desee, entre 0 y 5: |\r"
 		         "\r\n|------------------------------------------|\r\n";
 
-char menu5[] = "\r\n\n|------------------------------------------|\r"
-			     "\r\n|       Resumen de la Configuracion        |\r"
-	             "\r\n|------------------------------------------|\r";
+char menu5[] = "\r\n\n|---------------------------------------------------|\r"
+			     "\r\n|            Resumen de la Configuracion            |\r"
+				 "\r\n|---------------------------------------------------|\r";
 
 StateMachineElevator sme;
 arrayOfFloors aof;
@@ -271,7 +273,7 @@ void state_SETTING(StateMachineElevator* sme, arrayOfFloors* aof) {
 	static bool_t flag = 0;
 	static int value;
 	static char buffer[3];
-	static char message[512];
+	static char message[1000];
 	static uint8_t bufferUART = 0xFF;
 	static uint8_t uart = 0xFF;
 	static uint8_t index = 0;
@@ -299,14 +301,14 @@ void state_SETTING(StateMachineElevator* sme, arrayOfFloors* aof) {
 					option = 5;
 				}
 				if(bufferUART == '5'){
-					snprintf(message, sizeof(message),"%s\r"
-							"|  Velocidad de paso entre pisos: %d        |\r\n"
-							"|  Velocidad de apertura de puerta: %d      |\r\n"
-							"|  Cantidad de pisos: %2d                   |\r\n"
-							"|  Cantidad de subsuelos: %d                |\r\n"
-							"|------------------------------------------|\r\n"
-							"|     Saliste del modo configuracion!      |\r\n"
-							"|------------------------------------------|\r\n",
+					snprintf(message, sizeof(message),"%s\r\n"
+							"|  Tiempo entre piso y piso: %d segundos             |\r\n"
+							"|  Tiempo en abrir/cerrar las puertas: %d segundos   |\r\n"
+							"|  Cantidad de pisos: %2d                            |\r\n"
+							"|  Cantidad de subsuelos: %d                         |\r\n"
+							"|---------------------------------------------------|\r\n"
+							"|          Saliste del modo configuracion!          |\r\n"
+							"|---------------------------------------------------|\r\n",
 							menu5, speedBetweenFloors, speedDoors,
 							aof->amountFloors, aof->amountSubs);
 					uartWriteString(UART_USB, message);
@@ -439,6 +441,7 @@ void state_CLOSED_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 	if(order && go){
 		go = 0;
 		insert_LedEventQueue(&ledEventQueue, eClosedDoor);
+		insert_DisplayEventQueue(&displayEventQueue, eStop);
 		buttonAccess = 0;
 		select_order(sme, aof);
 	}
@@ -468,6 +471,7 @@ void state_OPEN_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 	else{  /* Si no hay pedidos, ver si se quiere configurar */
 		if(sme->currentFloor == 0){
 			settingAccess = 1;
+			flagDisplay = 1;
 			if(consult_EventQueue(&eventQueue, &e)){
 				if(e == eSetting){
 					supress_EventQueue(&eventQueue);
@@ -506,6 +510,7 @@ void state_CLOSING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 		}
 		else{   /* Si no hay nadie, cierro la puerta */
 			insert_LedEventQueue(&ledEventQueue, eClosingDoor);
+			insert_DisplayEventQueue(&displayEventQueue, eClosingDoor);
 			enable_timer(t1);
 			Chip_TIMER_Reset(LPC_TIMER2);
 			closing = 1;
@@ -519,6 +524,7 @@ void state_CLOSING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 				if(e == eThereIsNoOne){   /* Ya no hay nadie, cierro la puerta */
 					supress_EventQueue(&eventQueue);
 					insert_LedEventQueue(&ledEventQueue, eClosingDoor);
+					insert_DisplayEventQueue(&displayEventQueue, eClosingDoor);
 					Chip_TIMER_Reset(LPC_TIMER2);
 					blocked = 0;
 					closing = 1;
@@ -526,6 +532,7 @@ void state_CLOSING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 				if(e == eThereIsSomeone){
 					supress_EventQueue(&eventQueue);
 					insert_LedEventQueue(&ledEventQueue, eAlarm);
+					insert_DisplayEventQueue(&displayEventQueue, eAlarm);
 					disable_timer(t2);
 					alarm = 1;
 				}
@@ -542,6 +549,7 @@ void state_CLOSING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 				supress_EventQueue(&eventQueue);
 				insert_LedEventQueue(&ledEventQueue, eEndAlarm);
 				insert_LedEventQueue(&ledEventQueue, eClosingDoor);
+				insert_DisplayEventQueue(&displayEventQueue, eClosingDoor);
 				enable_timer(t1);
 				Chip_TIMER_Reset(LPC_TIMER2);
 				blocked = 0;
@@ -577,11 +585,13 @@ void state_OPENING_DOOR(StateMachineElevator* sme, arrayOfFloors* aof){
 		onEntry = 0;
 		enable_timer(t1);
 		insert_LedEventQueue(&ledEventQueue, eOpeningDoor);
+		insert_DisplayEventQueue(&displayEventQueue, eOpeningDoor);
 	}
 
 	if(timerInt){
 		timerInt = 0;
 		insert_LedEventQueue(&ledEventQueue, eOpenDoor);
+		insert_DisplayEventQueue(&displayEventQueue, eStop);
 		disable_timer(t1);
 		flagDisplay = 1;
 		transition_to(sme, state_OPEN_DOOR, STOPED);

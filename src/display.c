@@ -22,7 +22,7 @@
 StateDisplay stateDisplay;
 DisplayDataManager displayDataManager;
 Event displayEvent;
-bool_t flagSetting, flagGoingUp, flagGoingDown, flagStoped;
+bool_t flagSetting, flagAlarm, flagClosing, flagOpening;
 delay_t displayDelay;
 extern bool_t flagDisplay;
 char text_row0[DISPLAY_COLS + 1];
@@ -69,9 +69,10 @@ void init_Display(void){
 	lcdCursorSet(LCD_CURSOR_OFF);
 	lcdClear();
 
-	flagGoingUp = 0;
-	flagGoingDown = 0;
-	flagStoped = 0;
+	flagSetting = 0;
+	flagAlarm = 0;
+	flagClosing = 0;
+	flagOpening = 0;
 
 	// Limpiar buffers
 	memset(displayDataManager.row0_buffer, ' ', DISPLAY_COLS);
@@ -79,6 +80,7 @@ void init_Display(void){
 	memset(displayDataManager.row0_current, ' ', DISPLAY_COLS);
 	memset(displayDataManager.row1_current, ' ', DISPLAY_COLS);
 
+	displayDataManager.displayMode = DISPLAY_MODE_SETTING;
 	displayDataManager.row0_buffer[DISPLAY_COLS] = '\0';
 	displayDataManager.row1_buffer[DISPLAY_COLS] = '\0';
 	displayDataManager.row0_current[DISPLAY_COLS] = '\0';
@@ -101,79 +103,132 @@ void set_row1(char text[]) {
 }
 
 
+void update_row_data(bool_t row){
+	if(row){
+		if (strcmp(displayDataManager.row1_buffer, displayDataManager.row1_current) != 0) {
+			lcdSendStringRaw(displayDataManager.row1_buffer);
+			strcpy(displayDataManager.row1_current, displayDataManager.row1_buffer);
+		}
+	}
+	else{
+		if (strcmp(displayDataManager.row0_buffer, displayDataManager.row0_current) != 0) {
+			lcdSendStringRaw(displayDataManager.row0_buffer);
+			strcpy(displayDataManager.row0_current, displayDataManager.row0_buffer);
+		}
+	}
+}
+
+
 void update_Display(){
+
+	if(consult_DisplayEventQueue(&displayEventQueue, &displayEvent)){
+		supress_DisplayEventQueue(&displayEventQueue);
+		if(displayEvent == eSetting){
+			flagSetting = 1;
+			flagAlarm = 0;
+			flagClosing = 0;
+			flagOpening = 0;
+			displayDataManager.displayMode = DISPLAY_MODE_SETTING;
+		}
+		if(displayEvent == eStop){
+			flagSetting = 0;
+			flagAlarm = 0;
+			flagClosing = 0;
+			flagOpening = 0;
+			displayDataManager.displayMode = DISPLAY_MODE_STOP;
+		}
+		if(displayEvent == eGoingUp){
+			flagSetting = 0;
+			flagAlarm = 0;
+			flagClosing = 0;
+			flagOpening = 0;
+			displayDataManager.displayMode = DISPLAY_MODE_GOING_UP;
+		}
+		if(displayEvent == eGoingDown){
+			flagSetting = 0;
+			flagAlarm = 0;
+			flagClosing = 0;
+			flagOpening = 0;
+			displayDataManager.displayMode = DISPLAY_MODE_GOING_DOWN;
+		}
+		if(displayEvent == eAlarm){
+			flagAlarm = 1;
+			flagSetting = 0;
+			flagClosing = 0;
+			flagOpening = 0;
+			displayDataManager.displayMode = DISPLAY_MODE_ALARM;
+		}
+		if(displayEvent == eClosingDoor){
+			flagClosing = 1;
+			flagSetting = 0;
+			flagAlarm = 0;
+			flagOpening = 0;
+			displayDataManager.displayMode = DISPLAY_MODE_CLOSING;
+		}
+		if(displayEvent == eOpeningDoor){
+			flagOpening = 1;
+			flagSetting = 0;
+			flagAlarm = 0;
+			flagClosing = 0;
+			displayDataManager.displayMode = DISPLAY_MODE_OPENING;
+		}
+	}
 
 	switch (stateDisplay) {
 	case DISPLAY_UPDATE_ROW0:
-		if(consult_DisplayEventQueue(&displayEventQueue, &displayEvent)){
-			supress_DisplayEventQueue(&displayEventQueue);
-			if(displayEvent == eSetting){
-				flagSetting = 1;
-				flagStoped = 0;
-				flagGoingUp = 0;
-				flagGoingDown = 0;
-			}
-			if(displayEvent == eStop){
-				flagSetting = 0;
-				flagStoped = 1;
-				flagGoingUp = 0;
-				flagGoingDown = 0;
-			}
-			if(displayEvent == eGoingUp){
-				flagSetting = 0;
-				flagGoingUp = 1;
-				flagGoingDown = 0;
-				flagStoped = 0;
-			}
-			if(displayEvent == eGoingDown){
-				flagSetting = 0;
-				flagGoingDown = 1;
-				flagGoingUp = 0;
-				flagStoped = 0;
-			}
-		}
-
-		if(flagSetting && flagDisplay){
+		switch(displayDataManager.displayMode){
+		case DISPLAY_MODE_SETTING:
+			lcdGoToXY(0, 0);
 			snprintf(text_row0, sizeof(text_row0), "    FUERA DE    ");
 			set_row0(text_row0);
-			if (strcmp(displayDataManager.row0_buffer, displayDataManager.row0_current) != 0) {
-				lcdGoToXY(0, 0);
-				lcdSendStringRaw(displayDataManager.row0_buffer);
-				strcpy(displayDataManager.row0_current, displayDataManager.row0_buffer);
-			}
-		}
+			update_row_data(0);
+			break;
 
-		if(flagStoped){
+		case DISPLAY_MODE_STOP:
+			lcdGoToXY(0, 0);
 			snprintf(text_row0, sizeof(text_row0), "Piso actual: %d", sme.currentFloor);
 			set_row0(text_row0);
-			if (strcmp(displayDataManager.row0_buffer, displayDataManager.row0_current) != 0) {
-				lcdGoToXY(0, 0);
-				lcdSendStringRaw(displayDataManager.row0_buffer);
-				strcpy(displayDataManager.row0_current, displayDataManager.row0_buffer);
-			}
-		}
+			update_row_data(0);
+			break;
 
-		if(flagGoingUp){
+		case DISPLAY_MODE_GOING_UP:
 			lcdGoToXY(0, 0);
 			lcdData(ARROW_UP);
 			snprintf(text_row0, sizeof(text_row0), "%d  Destino: %d", sme.currentFloor, sme.destiny);
 			set_row0(text_row0);
-			if (strcmp(displayDataManager.row0_buffer, displayDataManager.row0_current) != 0) {
-				lcdSendStringRaw(displayDataManager.row0_buffer);
-				strcpy(displayDataManager.row0_current, displayDataManager.row0_buffer);
-			}
-		}
+			update_row_data(0);
+			break;
 
-		if(flagGoingDown){
+		case DISPLAY_MODE_GOING_DOWN:
 			lcdGoToXY(0, 0);
 			lcdData(ARROW_DOWN);
 			snprintf(text_row0, sizeof(text_row0), "%d  Destino: %d", sme.currentFloor, sme.destiny);
 			set_row0(text_row0);
-			if (strcmp(displayDataManager.row0_buffer, displayDataManager.row0_current) != 0) {
-				lcdSendStringRaw(displayDataManager.row0_buffer);
-				strcpy(displayDataManager.row0_current, displayDataManager.row0_buffer);
-			}
+			update_row_data(0);
+			break;
+
+		case DISPLAY_MODE_ALARM:
+			lcdGoToXY(0, 0);
+			snprintf(text_row0, sizeof(text_row0), "Puerta bloqueada");
+			set_row0(text_row0);
+			update_row_data(0);
+			break;
+
+		case DISPLAY_MODE_CLOSING:
+			lcdGoToXY(0, 0);
+			snprintf(text_row0, sizeof(text_row0), "Cerrando puerta");
+			set_row0(text_row0);
+			update_row_data(0);
+			break;
+
+		case DISPLAY_MODE_OPENING:
+			lcdGoToXY(0, 0);
+			snprintf(text_row0, sizeof(text_row0), "Abriendo puerta");
+			set_row0(text_row0);
+			update_row_data(0);
+			break;
 		}
+
 		stateDisplay = DISPLAY_UPDATE_ROW1;
 		break;
 
@@ -183,19 +238,19 @@ void update_Display(){
 			lcdGoToXY(0, 1);
 			snprintf(text_row1, sizeof(text_row1), "    SERVICIO    ");
 			set_row1(text_row1);
-			if (strcmp(displayDataManager.row1_buffer, displayDataManager.row1_current) != 0) {
-				lcdSendStringRaw(displayDataManager.row1_buffer);
-				strcpy(displayDataManager.row1_current, displayDataManager.row1_buffer);
-			}
+			update_row_data(1);
+		}
+		else if(flagClosing || flagOpening || flagAlarm){
+			lcdGoToXY(0, 1);
+			snprintf(text_row1, sizeof(text_row1), "                ");
+			set_row1(text_row1);
+			update_row_data(1);
 		}
 		else{
 			lcdGoToXY(0, 1);
 			snprintf(text_row1, sizeof(text_row1), "Destino: %c%c", number_text[0], number_text[1]);
 			set_row1(text_row1);
-			if (strcmp(displayDataManager.row1_buffer, displayDataManager.row1_current) != 0) {
-				lcdSendStringRaw(displayDataManager.row1_buffer);
-				strcpy(displayDataManager.row1_current, displayDataManager.row1_buffer);
-			}
+			update_row_data(1);
 		}
 		stateDisplay = DISPLAY_UPDATE_ROW0;
 		break;

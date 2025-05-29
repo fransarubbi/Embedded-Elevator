@@ -14,7 +14,18 @@ typedef enum {
 } StateDisplay;
 
 
+typedef enum{
+	DISPLAY_MODE_SETTING,
+	DISPLAY_MODE_STOP,
+	DISPLAY_MODE_GOING_UP,
+	DISPLAY_MODE_GOING_DOWN,
+	DISPLAY_MODE_ALARM,
+	DISPLAY_MODE_CLOSING,
+	DISPLAY_MODE_OPENING
+} DisplayMode;
+
 typedef struct {
+	DisplayMode displayMode;
     char row0_buffer[DISPLAY_COLS + 1];     // Buffer fila superior
     char row1_buffer[DISPLAY_COLS + 1];     // Buffer fila inferior
     char row0_current[DISPLAY_COLS + 1];    // Contenido actual fila 0
@@ -32,6 +43,6 @@ void init_Display(void);
 void update_Display(void);
 void set_row0(char[]);
 void set_row1(char[]);
-
+void update_row_data(bool_t);
 
 #endif
